@@ -68,6 +68,7 @@ import org.spongepowered.api.event.cause.entity.damage.source.FallingBlockDamage
 import org.spongepowered.api.event.cause.entity.damage.source.IndirectEntityDamageSource;
 import org.spongepowered.api.fluid.FluidStack;
 import org.spongepowered.api.fluid.FluidStackSnapshot;
+import org.spongepowered.api.fluid.FluidState;
 import org.spongepowered.api.item.FireworkEffect;
 import org.spongepowered.api.item.enchantment.Enchantment;
 import org.spongepowered.api.item.inventory.Inventory;
@@ -141,6 +142,7 @@ import org.spongepowered.common.event.cause.entity.damage.SpongeFallingBlockDamg
 import org.spongepowered.common.event.cause.entity.damage.SpongeIndirectEntityDamageSourceBuilder;
 import org.spongepowered.common.fluid.SpongeFluidStackBuilder;
 import org.spongepowered.common.fluid.SpongeFluidStackSnapshotBuilder;
+import org.spongepowered.common.fluid.SpongeFluidStateBuilder;
 import org.spongepowered.common.inventory.InventoryTransactionResultImpl;
 import org.spongepowered.common.inventory.SpongeInventoryBuilder;
 import org.spongepowered.common.inventory.custom.SpongeViewableInventoryBuilder;
@@ -282,6 +284,7 @@ public final class SpongeBuilderRegistry implements BuilderRegistry {
             .register(Selector.Builder.class, SpongeSelectorFactory::createBuilder)
             .register(DataStore.Builder.class, SpongeDataStoreBuilder::new)
             .register(KeyValueMatcher.Builder.class, SpongeKeyValueMatcherBuilder::new)
+            .register(FluidState.Builder.class, SpongeFluidStateBuilder::new)
         ;
     }
 }
