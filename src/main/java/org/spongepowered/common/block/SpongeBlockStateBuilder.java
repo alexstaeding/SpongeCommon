@@ -27,6 +27,9 @@ package org.spongepowered.common.block;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.spongepowered.common.data.util.DataUtil.checkDataExists;
 
+import com.mojang.brigadier.StringReader;
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import net.minecraft.command.arguments.BlockStateParser;
 import org.spongepowered.api.block.BlockState;
 import org.spongepowered.api.block.BlockType;
 import org.spongepowered.api.block.BlockTypes;
@@ -37,11 +40,12 @@ import org.spongepowered.api.data.persistence.InvalidDataException;
 import org.spongepowered.api.data.value.Value;
 import org.spongepowered.common.util.Constants;
 
+import java.util.Objects;
 import java.util.Optional;
 
 public class SpongeBlockStateBuilder extends AbstractDataBuilder<BlockState> implements BlockState.Builder {
 
-    private BlockState blockState;
+    private BlockState blockState = BlockTypes.STONE.get().getDefaultState();
 
     public SpongeBlockStateBuilder() {
         super(BlockState.class, 1);
@@ -56,7 +60,7 @@ public class SpongeBlockStateBuilder extends AbstractDataBuilder<BlockState> imp
 
     @Override
     public <V> SpongeBlockStateBuilder add(final Key<? extends Value<V>> key, final V value) {
-        checkNotNull(key, "key");
+        Objects.requireNonNull(key, "key");
         this.blockState = this.blockState.with(key, value).orElse(this.blockState);
         return this;
     }
@@ -85,9 +89,24 @@ public class SpongeBlockStateBuilder extends AbstractDataBuilder<BlockState> imp
         }
         checkDataExists(container, Constants.Block.BLOCK_STATE);
         try {
-            return container.getCatalogType(Constants.Block.BLOCK_STATE, BlockState.class);
+            return container.getString(Constants.Block.BLOCK_STATE).map(this::parseString);
         } catch (final Exception e) {
             throw new InvalidDataException("Could not retrieve a blockstate!", e);
+        }
+    }
+
+    @Override
+    public BlockState.Builder fromString(final String id) {
+        this.blockState = this.parseString(id);
+        return this;
+    }
+
+    private BlockState parseString(final String id) {
+        final BlockStateParser parser = new BlockStateParser(new StringReader(id), true);
+        try {
+            return (BlockState) parser.parse(true).getState();
+        } catch (final CommandSyntaxException e) {
+            throw new IllegalArgumentException("String " + id + " could not be parsed");
         }
     }
 }

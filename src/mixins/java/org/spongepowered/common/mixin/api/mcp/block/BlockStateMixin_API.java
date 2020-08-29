@@ -61,8 +61,6 @@ public abstract class BlockStateMixin_API extends StateHolderMixin_API<BlockStat
     @Shadow public abstract Block shadow$getBlock();
     @Shadow public abstract IFluidState shadow$getFluidState();
 
-    private ResourceKey impl$key;
-
     @Override
     public BlockType getType() {
         return (BlockType) this.shadow$getBlock();
@@ -82,7 +80,7 @@ public abstract class BlockStateMixin_API extends StateHolderMixin_API<BlockStat
     public DataContainer toContainer() {
         return DataContainer.createNew()
             .set(Queries.CONTENT_VERSION, this.getContentVersion())
-            .set(Constants.Block.BLOCK_STATE, this.getKey().toString());
+            .set(Constants.Block.BLOCK_STATE, this.toString());
     }
 
     @Override
@@ -122,15 +120,7 @@ public abstract class BlockStateMixin_API extends StateHolderMixin_API<BlockStat
         return this;
     }
 
-    @Override
-    public ResourceKey getKey() {
-        if (this.impl$key == null) {
-            this.impl$generateIdFromParentBlock(this.shadow$getBlock());
-        }
-        return this.impl$key;
-    }
-
-    private void impl$generateIdFromParentBlock(final Block block) {
+    private String impl$generateIdFromParentBlock(final Block block) {
         final StringBuilder builder = new StringBuilder();
         builder.append(((BlockType) block).getKey().getValue());
         if (!this.shadow$getProperties().isEmpty()) {
@@ -145,6 +135,6 @@ public abstract class BlockStateMixin_API extends StateHolderMixin_API<BlockStat
             builder.append(joiner.join(propertyValues));
             builder.append(']');
         }
-        this.impl$key = ResourceKey.of(((BlockType) block).getKey().getNamespace(), builder.toString());
+        return builder.toString();
     }
 }

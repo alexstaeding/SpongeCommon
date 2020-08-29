@@ -1246,6 +1246,7 @@ public final class Constants {
         // Fluids
         public static final DataQuery FLUID_TYPE = of("FluidType");
         public static final DataQuery FLUID_VOLUME = of("FluidVolume");
+        public static final DataQuery FLUID_STATE = of("FluidState");
     }
 
     public static final class ItemStack {

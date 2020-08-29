@@ -33,6 +33,7 @@ import org.apache.logging.log4j.Logger;
 import org.spongepowered.api.ResourceKey;
 import org.spongepowered.api.Sponge;
 import org.spongepowered.api.adventure.SpongeComponents;
+import org.spongepowered.api.block.BlockState;
 import org.spongepowered.api.command.Command;
 import org.spongepowered.api.command.CommandResult;
 import org.spongepowered.api.command.parameter.Parameter;
@@ -47,6 +48,7 @@ import org.spongepowered.api.entity.living.player.gamemode.GameModes;
 import org.spongepowered.api.entity.living.player.server.ServerPlayer;
 import org.spongepowered.api.event.Listener;
 import org.spongepowered.api.event.lifecycle.RegisterCommandEvent;
+import org.spongepowered.api.fluid.FluidState;
 import org.spongepowered.api.profile.GameProfile;
 import org.spongepowered.api.world.ServerLocation;
 import org.spongepowered.plugin.PluginContainer;
@@ -237,6 +239,22 @@ public final class CommandTestPlugin {
                     .build(),
                 "getuser"
                 );
+
+        event.register(
+                this.plugin,
+                Command.builder()
+                    .parameter(Parameter.location().setKey(serverLocationKey).build())
+                    .setExecutor(context -> {
+                        final ServerLocation location = context.requireOne(serverLocationKey);
+                        final BlockState state = location.getBlock();
+                        final FluidState fluidState = state.getFluidState();
+                        context.sendMessage(TextComponent.of("BlockState: " + state.toString()));
+                        context.sendMessage(TextComponent.of("FluidState: " + fluidState.toString()));
+                        return CommandResult.success();
+                    })
+                    .build(),
+                "stateatloc"
+        );
     }
 
     @Listener
