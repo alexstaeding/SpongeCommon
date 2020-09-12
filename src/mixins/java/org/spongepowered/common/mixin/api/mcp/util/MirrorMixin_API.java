@@ -24,45 +24,23 @@
  */
 package org.spongepowered.common.mixin.api.mcp.util;
 
-import net.minecraft.util.Rotation;
+import net.minecraft.util.Mirror;
 import org.spongepowered.api.ResourceKey;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.common.SpongeCommon;
 
-@Mixin(Rotation.class)
-public abstract class RotationMixin_API implements org.spongepowered.api.util.rotation.Rotation {
+@Mixin(Mirror.class)
+public abstract class MirrorMixin_API implements org.spongepowered.api.util.mirror.Mirror {
 
     //@formatter:off
-    @Shadow public abstract Rotation shadow$add(Rotation rotation);
     @Shadow(remap = false) public abstract String shadow$name();
     //@formatter:on
 
     private final ResourceKey api$key = ResourceKey.of(SpongeCommon.getActivePlugin(), this.shadow$name());
 
-    @SuppressWarnings("ConstantConditions")
-    @Override
-    public org.spongepowered.api.util.rotation.Rotation and(final org.spongepowered.api.util.rotation.Rotation rotation) {
-        return (org.spongepowered.api.util.rotation.Rotation) (Object) this.shadow$add((Rotation) (Object) rotation);
-    }
-
     @Override
     public ResourceKey getKey() {
         return this.api$key;
-    }
-
-    @SuppressWarnings({"ConstantConditions", "RedundantCast"})
-    @Override
-    public int getAngle() {
-        if ((Rotation) (Object) this == Rotation.NONE) {
-            return 0;
-        } else if ((Rotation) (Object) this == Rotation.CLOCKWISE_90) {
-            return 90;
-        } else if ((Rotation) (Object) this == Rotation.CLOCKWISE_180) {
-            return 180;
-        } else if ((Rotation) (Object) this == Rotation.COUNTERCLOCKWISE_90) {
-            return 270;
-        }
-        return 0; // ???? who the hell adds a new rotation?
     }
 }
