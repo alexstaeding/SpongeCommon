@@ -43,6 +43,7 @@ import org.spongepowered.api.data.persistence.Queries;
 import org.spongepowered.api.data.value.Value;
 import org.spongepowered.api.fluid.FluidState;
 import org.spongepowered.api.util.Direction;
+import org.spongepowered.api.util.rotation.Rotation;
 import org.spongepowered.api.world.ServerLocation;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -53,13 +54,17 @@ import org.spongepowered.common.util.Constants;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 @Mixin(net.minecraft.block.BlockState.class)
 public abstract class BlockStateMixin_API extends StateHolderMixin_API<BlockState, net.minecraft.block.BlockState> implements BlockState {
 
+    //@formatting:off
     @Shadow public abstract Block shadow$getBlock();
     @Shadow public abstract IFluidState shadow$getFluidState();
+    @Shadow public abstract net.minecraft.block.BlockState shadow$rotate(net.minecraft.util.Rotation rotation);
+    //@formatting:on
 
     private ResourceKey impl$key;
 
@@ -86,7 +91,7 @@ public abstract class BlockStateMixin_API extends StateHolderMixin_API<BlockStat
     }
 
     @Override
-    public BlockSnapshot snapshotFor(ServerLocation location) {
+    public BlockSnapshot snapshotFor(final ServerLocation location) {
         final SpongeBlockSnapshotBuilder builder = SpongeBlockSnapshotBuilder.pooled()
                 .blockState((net.minecraft.block.BlockState) (Object) this)
                 .position(location.getBlockPosition())
@@ -103,17 +108,17 @@ public abstract class BlockStateMixin_API extends StateHolderMixin_API<BlockStat
     }
 
     @Override
-    public boolean validateRawData(DataView container) {
+    public boolean validateRawData(final DataView container) {
         return container.contains(Constants.Block.BLOCK_STATE);
     }
 
     @Override
-    public <E> Optional<E> get(Direction direction, Key<? extends Value<E>> key) {
+    public <E> Optional<E> get(final Direction direction, final Key<? extends Value<E>> key) {
         throw new UnsupportedOperationException("Not implemented yet"); // TODO directional data
     }
 
     @Override
-    public BlockState withRawData(DataView container) throws InvalidDataException {
+    public BlockState withRawData(final DataView container) throws InvalidDataException {
         throw new UnsupportedOperationException("Not implemented yet"); // TODO Data API
     }
 
@@ -130,6 +135,11 @@ public abstract class BlockStateMixin_API extends StateHolderMixin_API<BlockStat
         return this.impl$key;
     }
 
+    @Override
+    public BlockState rotate(final Rotation rotation) {
+        return (BlockState) this.shadow$rotate((net.minecraft.util.Rotation) (Object) Objects.requireNonNull(rotation, "Rotation cannot be null!"));
+    }
+
     private void impl$generateIdFromParentBlock(final Block block) {
         final StringBuilder builder = new StringBuilder();
         builder.append(((BlockType) block).getKey().getValue());
@@ -137,8 +147,8 @@ public abstract class BlockStateMixin_API extends StateHolderMixin_API<BlockStat
             builder.append('[');
             final Joiner joiner = Joiner.on(',');
             final List<String> propertyValues = new ArrayList<>();
-            for (IProperty<?> property : this.shadow$getProperties()) {
-                Comparable<?> value = this.shadow$get(property);
+            for (final IProperty<?> property : this.shadow$getProperties()) {
+                final Comparable<?> value = this.shadow$get(property);
                 final String stringValue = (value instanceof IStringSerializable) ? ((IStringSerializable) value).getName() : value.toString();
                 propertyValues.add(property.getName() + "=" + stringValue);
             }
