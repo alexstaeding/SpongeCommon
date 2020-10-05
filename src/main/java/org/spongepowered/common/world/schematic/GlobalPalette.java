@@ -45,10 +45,10 @@ import java.util.function.IntFunction;
 
 import javax.annotation.Nullable;
 
-public class GlobalPalette<T extends CatalogType> implements Palette<T> {
+public class GlobalPalette<T> implements Palette.Immutable<T> {
 
     @Nullable
-    private static Palette<BlockState> blockPalette;
+    private static Palette.Immutable<BlockState> blockPalette;
     @Nullable
     private static GlobalPalette<BiomeType> biomePalette;
 
@@ -75,25 +75,25 @@ public class GlobalPalette<T extends CatalogType> implements Palette<T> {
 
     @SuppressWarnings("deprecation")
     public static Palette<BlockState> getBlockPalette() {
-        if (blockPalette == null) {
-            blockPalette = new GlobalPalette<>(PaletteTypes.GLOBAL_BLOCKS.get(),
+        if (GlobalPalette.blockPalette == null) {
+            GlobalPalette.blockPalette = new GlobalPalette<>(PaletteTypes.GLOBAL_BLOCK_PALETTE.get(),
                 (type) -> Block.BLOCK_STATE_IDS.get((net.minecraft.block.BlockState) type),
                 (id) -> (BlockState) Block.BLOCK_STATE_IDS.getByValue(id),
                 BlockState.class);
         }
-        return blockPalette;
+        return GlobalPalette.blockPalette;
     }
 
     public static GlobalPalette<BiomeType> getBiomePalette() {
-        if (biomePalette == null) {
-            biomePalette = new GlobalPalette<>(PaletteTypes.GLOBAL_BIOMES.get(),
+        if (GlobalPalette.biomePalette == null) {
+            GlobalPalette.biomePalette = new GlobalPalette<>(PaletteTypes.GLOBAL_BIOME_PALETTE.get(),
                 (type) -> Registry.BIOME.getId((Biome) (type instanceof VirtualBiomeType ? ((VirtualBiomeType) type).getPersistedType() : type)),
                 (id) -> (BiomeType) Registry.BIOME.getByValue(id),
                 BiomeType.class
                 );
 
         }
-        return biomePalette;
+        return GlobalPalette.biomePalette;
     }
 
     @Override
@@ -112,23 +112,18 @@ public class GlobalPalette<T extends CatalogType> implements Palette<T> {
     }
 
     @Override
-    public int getOrAssign(final T state) {
-        return this.typeToInt.apply(state);
-    }
-
-    @Override
     public Optional<T> get(final int id) {
         return Optional.ofNullable(this.intToType.apply(id));
     }
 
     @Override
-    public boolean remove(final T state) {
-        throw new UnsupportedOperationException("Cannot remove blockstates from the global palette");
+    public Collection<T> getEntries() {
+        return Sponge.getRegistry().getCatalogRegistry().getAllOf(this.catalogType);
     }
 
     @Override
-    public Collection<T> getEntries() {
-        return Sponge.getRegistry().getCatalogRegistry().getAllOf(this.catalogType);
+    public Mutable<T> asMutable() {
+        return null;
     }
 
     @Override

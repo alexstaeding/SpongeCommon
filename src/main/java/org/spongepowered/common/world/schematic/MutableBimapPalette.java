@@ -26,16 +26,15 @@ package org.spongepowered.common.world.schematic;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
-import org.spongepowered.api.CatalogType;
 import org.spongepowered.api.world.schematic.Palette;
 import org.spongepowered.api.world.schematic.PaletteType;
 
 import java.util.BitSet;
-import java.util.Collection;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Stream;
 
-public class BimapPalette<T extends CatalogType> implements Palette<T> {
+public class MutableBimapPalette<T> implements Palette.Mutable<T> {
 
     private static final int DEFAULT_ALLOCATION_SIZE = 64;
 
@@ -45,13 +44,20 @@ public class BimapPalette<T extends CatalogType> implements Palette<T> {
     private final PaletteType<T> paletteType;
     private int maxId = 0;
 
-    public BimapPalette(final PaletteType<T> paletteType) {
+    public MutableBimapPalette(final PaletteType<T> paletteType) {
         this.ids = HashBiMap.create();
         this.idsr = this.ids.inverse();
         this.paletteType = paletteType;
     }
 
-    public BimapPalette(final PaletteType<T> paletteType, final int expectedSize) {
+    public MutableBimapPalette(final PaletteType<T> paletteType, final BiMap<T, Integer> reference) {
+        this.ids = HashBiMap.create(reference.size());
+        this.idsr = this.ids.inverse();
+        this.paletteType = paletteType;
+        reference.forEach((key, id) -> this.getOrAssign(key));
+    }
+
+    public MutableBimapPalette(final PaletteType<T> paletteType, final int expectedSize) {
         this.ids = HashBiMap.create(expectedSize);
         this.idsr = this.ids.inverse();
         this.paletteType = paletteType;
@@ -115,8 +121,13 @@ public class BimapPalette<T extends CatalogType> implements Palette<T> {
     }
 
     @Override
-    public Collection<T> getEntries() {
-        return this.idsr.keySet();
+    public Stream<T> getEntries() {
+        return this.idsr.keySet().stream();
+    }
+
+    @Override
+    public Immutable<T> asImmutable() {
+        return new ImmutableBimapPalette<>(this.paletteType, this.ids);
     }
 
     @Override
@@ -127,7 +138,7 @@ public class BimapPalette<T extends CatalogType> implements Palette<T> {
         if (o == null || this.getClass() != o.getClass()) {
             return false;
         }
-        final BimapPalette<?> that = (BimapPalette<?>) o;
+        final MutableBimapPalette<?> that = (MutableBimapPalette<?>) o;
         return this.maxId == that.maxId &&
                this.ids.equals(that.ids) &&
                this.allocation.equals(that.allocation) &&

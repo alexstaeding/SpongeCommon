@@ -30,9 +30,11 @@ import org.spongepowered.api.world.schematic.Palette;
 import org.spongepowered.api.world.schematic.PaletteType;
 import org.spongepowered.common.SpongeCatalogType;
 
+import java.util.Optional;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
-public class SpongePaletteType<T extends CatalogType> extends SpongeCatalogType implements PaletteType<T> {
+public class SpongePaletteType<T> extends SpongeCatalogType implements PaletteType<T> {
 
     private final Supplier<? extends Palette<T>> builder;
 
@@ -44,6 +46,16 @@ public class SpongePaletteType<T extends CatalogType> extends SpongeCatalogType 
     @Override
     public Palette<T> create() {
         return this.builder.get();
+    }
+
+    @Override
+    public Function<T, String> getEncoder() {
+        return null;
+    }
+
+    @Override
+    public Function<String, Optional<T>> getDecoder() {
+        return null;
     }
 
 }
