@@ -10,7 +10,7 @@ public final class SpongeRayTraceFactory implements RayTrace.Factory {
     @Override
     @NonNull
     public RayTrace<@NonNull Entity> entityRayTrace() {
-        return null;
+        return new SpongeEntityRayTrace();
     }
 
     @Override
