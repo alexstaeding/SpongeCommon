@@ -24,13 +24,22 @@
  */
 package org.spongepowered.common.mixin.api.mcp.world;
 
+import net.minecraft.entity.EntityType;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.tileentity.TileEntity;
+import net.minecraft.tileentity.TileEntityType;
 import net.minecraft.util.Tuple;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.ICollisionReader;
 import net.minecraft.world.ILightReader;
+import net.minecraft.world.IWorld;
 import net.minecraft.world.IWorldReader;
+import net.minecraft.world.World;
 import net.minecraft.world.biome.Biome;
+import net.minecraft.world.chunk.Chunk;
+import net.minecraft.world.chunk.ChunkSection;
 import net.minecraft.world.chunk.ChunkStatus;
 import net.minecraft.world.chunk.IChunk;
 import net.minecraft.world.gen.Heightmap;
@@ -41,11 +50,13 @@ import org.spongepowered.api.entity.Entity;
 import org.spongepowered.api.entity.living.player.Player;
 import org.spongepowered.api.util.AABB;
 import org.spongepowered.api.world.HeightType;
+import org.spongepowered.api.world.ProtoWorld;
 import org.spongepowered.api.world.WorldBorder;
 import org.spongepowered.api.world.biome.BiomeType;
 import org.spongepowered.api.world.chunk.ProtoChunk;
 import org.spongepowered.api.world.dimension.DimensionType;
 import org.spongepowered.api.world.volume.game.ReadableRegion;
+import org.spongepowered.api.world.volume.stream.StreamOptions;
 import org.spongepowered.api.world.volume.stream.VolumeElement;
 import org.spongepowered.api.world.volume.stream.VolumeStream;
 import org.spongepowered.asm.mixin.Implements;
@@ -55,26 +66,34 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.common.bridge.world.dimension.DimensionTypeBridge;
 import org.spongepowered.common.util.VecHelper;
+import org.spongepowered.common.world.volume.MemoryBackedBiomeVolume;
+import org.spongepowered.common.world.volume.MemoryBackedBlockEntityVolume;
+import org.spongepowered.common.world.volume.MemoryBackedEntityVolume;
 import org.spongepowered.common.world.volume.SpongeVolumeStream;
-import org.spongepowered.common.world.volume.VolumeSpliterator;
+import org.spongepowered.common.world.volume.VolumeStreamUtils;
 import org.spongepowered.math.vector.Vector3d;
 import org.spongepowered.math.vector.Vector3i;
 
 import java.lang.ref.WeakReference;
+import java.util.AbstractMap;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.BiFunction;
+import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 @Mixin(IWorldReader.class)
 @Implements(@Interface(iface = ReadableRegion.class, prefix = "readable$"))
@@ -183,6 +202,7 @@ public interface IWorldReaderMixin_API<R extends ReadableRegion<R>> extends Read
 
     // ChunkVolume
 
+
     @Override
     default ProtoChunk<?> getChunk(final int x, final int y, final int z) {
         return (ProtoChunk<?>) this.shadow$getChunk(x >> 4, z >> 4, ChunkStatus.EMPTY, true);
@@ -215,54 +235,170 @@ public interface IWorldReaderMixin_API<R extends ReadableRegion<R>> extends Read
         return (BiomeType) this.shadow$getBiome(new BlockPos(x, y, z));
     }
 
-    @Override
-    default VolumeStream<R, BiomeType> getBiomeStream(final Vector3i min, final Vector3i max
-    ) {
-        return null;
-    }
-
-    @Override
-    default VolumeStream<R, BlockState> getBlockStateStream(final Vector3i min, final Vector3i max) {
-        return null;
-    }
-
-    @SuppressWarnings({"unchecked", "rawtypes"})
-    @Override
-    default VolumeStream<R, BlockEntity> getBlockEntityStream(final Vector3i min, final Vector3i max) {
-        final WeakReference<R> worldRef = new WeakReference<>((R) this);
-        final Supplier<R> worldSupplier = () -> Objects.requireNonNull(worldRef.get(), "World de-referenced");
-        final BlockPos chunkMin = new BlockPos(min.getX() >> 4, 0, min.getZ() >> 4);
-        final BlockPos chunkMax = new BlockPos(max.getX() >> 4, 0, max.getZ() >> 4);
-        final Set<BlockPos> availableTileEntityPositions = new HashSet<>();
-        for (int x = chunkMin.getX(); x < chunkMax.getX(); x++) {
-            for (int z = chunkMin.getZ(); z < chunkMax.getZ(); z++) {
-                @Nullable final IChunk iChunk = this.shadow$getChunk(x, z, ChunkStatus.FULL, false);
-                if (iChunk != null) {
-                    availableTileEntityPositions.addAll(iChunk.getTileEntitiesPos().stream()
-                        .filter(pos -> {
-                            final Vector3i v = VecHelper.toVector3i(pos);
-                            return v.compareTo(min) >= 0 && v.compareTo(max) <= 0;
-                        }).collect(Collectors.toSet()));
-                }
-            }
+    default void api$validateStreamParams(final Vector3i min, final Vector3i max, final StreamOptions options) {
+        Objects.requireNonNull(min, "Minimum coordinates cannot be null");
+        Objects.requireNonNull(max, "Maximum coordinates cannot be null");
+        Objects.requireNonNull(options, "StreamOptions cannot be null!");
+        if (min.getX() > max.getX()) {
+            throw new IllegalArgumentException("Min(x) must be greater than max(x)!");
         }
-        final Stream<VolumeElement<R, BlockEntity>> blockEntityStream = availableTileEntityPositions.stream()
-            .map(tilePos -> new Tuple<>(tilePos, ((IWorldReader) worldSupplier.get()).getTileEntity(tilePos)))
-            .filter(tuple -> Objects.nonNull(tuple.getB()))
-            .map(tuple -> {
-                final WeakReference<BlockEntity> blockEntityRef = new WeakReference(tuple.getB());
-                final Supplier<BlockEntity> blockEntitySupplier = () -> Objects.requireNonNull(
-                    blockEntityRef.get(),
-                    "BlockEntity de-referenced in a VolumeStream"
-                );
-                final Vector3i blockEntityPos = VecHelper.toVector3i(tuple.getA());
-                return VolumeElement.of(worldSupplier, blockEntitySupplier, blockEntityPos);
-            });
-        return new SpongeVolumeStream<>(blockEntityStream, worldSupplier);
+        if (min.getY() > max.getY()) {
+            throw new IllegalArgumentException("Min(y) must be greater than max y!");
+        }
+        if (min.getZ() > max.getZ()) {
+            throw new IllegalArgumentException("Min(z) must be greater than max z!");
+        }
+
     }
 
     @Override
-    default VolumeStream<R, Entity> getEntityStream(final Vector3i min, final Vector3i max) {
-        return null;
+    default VolumeStream<R, BiomeType> getBiomeStream(final Vector3i min, final Vector3i max, final StreamOptions options) {
+        this.api$validateStreamParams(min, max, options);
+
+        final boolean shouldCarbonCopy = options.carbonCopy();
+        final MemoryBackedBiomeVolume backingVolume = new MemoryBackedBiomeVolume(min, max);
+        return VolumeStreamUtils.<R, BiomeType, Biome, Chunk, BlockPos>generateStream(
+            min,
+            max,
+            options,
+            // Ref
+            (R) this,
+            // IdentityFunction
+            (pos, biome) -> {
+                if (shouldCarbonCopy) {
+                    backingVolume.setBiome(pos, biome);
+                }
+            },
+            // ChunkAccessor
+            VolumeStreamUtils.getChunkAccessorByStatus((IWorldReader) (Object) this, options.loadingStyle().generateArea()),
+            // Biome by key
+            (key, biome) -> key,
+            // Entity Accessor
+            VolumeStreamUtils.getBiomesForChunkByPos()
+            ,
+            // Filtered Position Entity Accessor
+            (blockPos, world) -> {
+                final Biome biome = shouldCarbonCopy
+                    ? backingVolume.getBiome(blockPos)
+                    : ((IWorldReader) world).getBiome(blockPos);
+                return new Tuple<>(blockPos, biome);
+            }
+        );
+    }
+
+    @Override
+    default VolumeStream<R, BlockState> getBlockStateStream(final Vector3i min, final Vector3i max, final StreamOptions options) {
+        this.api$validateStreamParams(min, max, options);
+
+        final boolean shouldCarbonCopy = options.carbonCopy();
+        final MemoryBackedBlockEntityVolume backingVolume = new MemoryBackedBlockEntityVolume(min, max);
+        return VolumeStreamUtils.<R, BlockState, net.minecraft.block.BlockState, Chunk, BlockPos>generateStream(
+            min,
+            max,
+            options,
+            // Ref
+            (R) this,
+            // IdentityFunction
+            (pos, blockState) -> {
+                if (shouldCarbonCopy) {
+                    backingVolume.setBlock(pos, blockState);
+                }
+            },
+            // ChunkAccessor
+            VolumeStreamUtils.getChunkAccessorByStatus((IWorldReader) (Object) this, options.loadingStyle().generateArea()),
+            // Biome by block position
+            (key, biome) -> key,
+            // Entity Accessor
+            VolumeStreamUtils.getBlockStatesForSections(),
+            // Filtered Position Entity Accessor
+            (blockPos, world) -> {
+                final net.minecraft.block.BlockState tileEntity = shouldCarbonCopy
+                    ? backingVolume.getBlock(blockPos)
+                    : ((IWorldReader) world).getBlockState(blockPos);
+                return new Tuple<>(blockPos, tileEntity);
+            }
+        );
+    }
+
+    @SuppressWarnings({"unchecked"})
+    @Override
+    default VolumeStream<R, BlockEntity> getBlockEntityStream(final Vector3i min, final Vector3i max, final StreamOptions options) {
+        this.api$validateStreamParams(min, max, options);
+
+        final boolean shouldCarbonCopy = options.carbonCopy();
+        final MemoryBackedBlockEntityVolume backingVolume = new MemoryBackedBlockEntityVolume(min, max);
+        return VolumeStreamUtils.<R, BlockEntity, TileEntity, Chunk, BlockPos>generateStream(
+            min,
+            max,
+            options,
+            // Ref
+            (R) this,
+            // IdentityFunction
+            shouldCarbonCopy ? (pos, tile) -> {
+                final CompoundNBT nbt = tile.write(new CompoundNBT());
+                final @Nullable TileEntity cloned = tile.getType().create();
+                Objects.requireNonNull(
+                    cloned,
+                    () -> String.format("TileEntityType[%s] creates a null TileEntity!", TileEntityType.getId(tile.getType()))
+                ).read(nbt);
+                backingVolume.addBlockEntity(pos.getX(), pos.getY(), pos.getZ(), (BlockEntity) cloned);
+            } : (pos, tile) -> {},
+            // ChunkAccessor
+            VolumeStreamUtils.getChunkAccessorByStatus((IWorldReader) (Object) this, options.loadingStyle().generateArea()),
+            // TileEntity by block pos
+            (key, tileEntity) -> key,
+            // TileEntity Accessor
+            (chunk) -> chunk.getTileEntityMap().entrySet().stream(),
+            // Filtered Position TileEntity Accessor
+            (blockPos, world) -> {
+                final @Nullable TileEntity tileEntity = shouldCarbonCopy
+                    ? backingVolume.getTileEntity(blockPos)
+                    : ((IWorldReader) world).getTileEntity(blockPos);
+                return new Tuple<>(blockPos, tileEntity);
+            }
+        );
+    }
+
+    @SuppressWarnings({"ConstantConditions", "RedundantCast", "rawtypes"})
+    @Override
+    default VolumeStream<R, Entity> getEntityStream(final Vector3i min, final Vector3i max, final StreamOptions options) {
+        this.api$validateStreamParams(min, max, options);
+
+        final boolean shouldCarbonCopy = options.carbonCopy();
+        final MemoryBackedEntityVolume backingVolume = new MemoryBackedEntityVolume(min, max);
+        return VolumeStreamUtils.<R, Entity, net.minecraft.entity.Entity, Chunk, UUID>generateStream(
+            min,
+            max,
+            options,
+            // Ref
+            (R) this,
+            // IdentityFunction
+            shouldCarbonCopy ? (pos, entity) -> {
+                final CompoundNBT nbt = new CompoundNBT();
+                entity.writeUnlessPassenger(nbt);
+                final net.minecraft.entity.Entity cloned = entity.getType().create((World) (IWorldReader) (Object) this);
+                Objects.requireNonNull(
+                    cloned,
+                    () -> String.format("EntityType[%s] creates a null Entity!", EntityType.getKey(entity.getType()))
+                ).read(nbt);
+                backingVolume.addEntity(cloned);
+            } : (pos, tile) -> {},
+            // ChunkAccessor
+            VolumeStreamUtils.getChunkAccessorByStatus((IWorldReader) (Object) this, options.loadingStyle().generateArea()),
+            // Entity -> UniqueID
+            (key, entity) -> entity.getUniqueID(),
+            // Entity Accessor
+            (chunk) -> Arrays.stream(chunk.getEntityLists())
+                    .flatMap(Collection::stream)
+                    .map(entity -> new AbstractMap.SimpleEntry<>(entity.getPosition(), entity))
+            ,
+            // Filtered Position Entity Accessor
+            (entityUuid, world) -> {
+                final net.minecraft.entity.Entity tileEntity = shouldCarbonCopy
+                    ? (net.minecraft.entity.Entity) backingVolume.getEntity(entityUuid).orElse(null)
+                    : (net.minecraft.entity.Entity) ((ProtoWorld) world).getEntity(entityUuid).orElse(null);
+                return new Tuple<>(tileEntity.getPosition(), tileEntity);
+            }
+        );
     }
 }
