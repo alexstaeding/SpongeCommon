@@ -31,18 +31,16 @@ import net.minecraft.tileentity.TileEntityType;
 import net.minecraft.util.Tuple;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.ICollisionReader;
 import net.minecraft.world.ILightReader;
-import net.minecraft.world.IWorld;
 import net.minecraft.world.IWorldReader;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.world.chunk.Chunk;
-import net.minecraft.world.chunk.ChunkSection;
 import net.minecraft.world.chunk.ChunkStatus;
 import net.minecraft.world.chunk.IChunk;
 import net.minecraft.world.gen.Heightmap;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.spongepowered.api.block.BlockState;
 import org.spongepowered.api.block.entity.BlockEntity;
@@ -57,7 +55,6 @@ import org.spongepowered.api.world.chunk.ProtoChunk;
 import org.spongepowered.api.world.dimension.DimensionType;
 import org.spongepowered.api.world.volume.game.ReadableRegion;
 import org.spongepowered.api.world.volume.stream.StreamOptions;
-import org.spongepowered.api.world.volume.stream.VolumeElement;
 import org.spongepowered.api.world.volume.stream.VolumeStream;
 import org.spongepowered.asm.mixin.Implements;
 import org.spongepowered.asm.mixin.Interface;
@@ -65,35 +62,22 @@ import org.spongepowered.asm.mixin.Intrinsic;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.common.bridge.world.dimension.DimensionTypeBridge;
-import org.spongepowered.common.util.VecHelper;
-import org.spongepowered.common.world.volume.MemoryBackedBiomeVolume;
-import org.spongepowered.common.world.volume.MemoryBackedBlockEntityVolume;
 import org.spongepowered.common.world.volume.MemoryBackedEntityVolume;
-import org.spongepowered.common.world.volume.SpongeVolumeStream;
 import org.spongepowered.common.world.volume.VolumeStreamUtils;
+import org.spongepowered.common.world.volume.buffer.biome.ObjectArrayMutableBiomeBuffer;
+import org.spongepowered.common.world.volume.buffer.block.ArrayMutableBlockBuffer;
+import org.spongepowered.common.world.volume.buffer.blockentity.ObjectArrayMutableBlockEntityBuffer;
 import org.spongepowered.math.vector.Vector3d;
 import org.spongepowered.math.vector.Vector3i;
 
-import java.lang.ref.WeakReference;
 import java.util.AbstractMap;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Random;
-import java.util.Set;
 import java.util.UUID;
-import java.util.function.BiFunction;
-import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.function.Supplier;
-import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 @Mixin(IWorldReader.class)
 @Implements(@Interface(iface = ReadableRegion.class, prefix = "readable$"))
@@ -115,8 +99,6 @@ public interface IWorldReaderMixin_API<R extends ReadableRegion<R>> extends Read
     //@formatter:on
 
     // ReadableRegion
-
-    @Shadow IChunk getChunk(int chunkX, int chunkZ, ChunkStatus requiredStatus);
 
     @Override
     default DimensionType getDimensionType() {
@@ -195,7 +177,7 @@ public interface IWorldReaderMixin_API<R extends ReadableRegion<R>> extends Read
 
     @Override
     default <T extends Entity> Collection<? extends T> getEntities(final Class<? extends T> entityClass, final AABB box,
-        @javax.annotation.Nullable final Predicate<? super T> predicate) {
+        @Nullable final Predicate<? super T> predicate) {
         throw new UnsupportedOperationException(
             "Unfortunately, you've found an extended class of IWorldReaderBase that isn't part of Sponge API");
     }
@@ -203,9 +185,10 @@ public interface IWorldReaderMixin_API<R extends ReadableRegion<R>> extends Read
     // ChunkVolume
 
 
+    @SuppressWarnings("ConstantConditions")
     @Override
-    default ProtoChunk<?> getChunk(final int x, final int y, final int z) {
-        return (ProtoChunk<?>) this.shadow$getChunk(x >> 4, z >> 4, ChunkStatus.EMPTY, true);
+    default ProtoChunk<@NonNull ?> getChunk(final int x, final int y, final int z) {
+        return (ProtoChunk<@NonNull ?>) this.shadow$getChunk(x >> 4, z >> 4, ChunkStatus.EMPTY, true);
     }
 
     @Override
@@ -225,6 +208,7 @@ public interface IWorldReaderMixin_API<R extends ReadableRegion<R>> extends Read
 
     // HeightAwareVolume
 
+    @SuppressWarnings("ConstantConditions")
     @Override
     default int getHeight(final HeightType type, final int x, final int z) {
         return this.shadow$getHeight((Heightmap.Type) (Object) type, x, z);
@@ -251,12 +235,13 @@ public interface IWorldReaderMixin_API<R extends ReadableRegion<R>> extends Read
 
     }
 
+    @SuppressWarnings({"RedundantCast", "RedundantTypeArguments", "unchecked"})
     @Override
     default VolumeStream<R, BiomeType> getBiomeStream(final Vector3i min, final Vector3i max, final StreamOptions options) {
         this.api$validateStreamParams(min, max, options);
 
         final boolean shouldCarbonCopy = options.carbonCopy();
-        final MemoryBackedBiomeVolume backingVolume = new MemoryBackedBiomeVolume(min, max);
+        final ObjectArrayMutableBiomeBuffer backingVolume = new ObjectArrayMutableBiomeBuffer(min, max);
         return VolumeStreamUtils.<R, BiomeType, Biome, Chunk, BlockPos>generateStream(
             min,
             max,
@@ -279,19 +264,20 @@ public interface IWorldReaderMixin_API<R extends ReadableRegion<R>> extends Read
             // Filtered Position Entity Accessor
             (blockPos, world) -> {
                 final Biome biome = shouldCarbonCopy
-                    ? backingVolume.getBiome(blockPos)
+                    ? backingVolume.getNativeBiome(blockPos.getX(), blockPos.getY(), blockPos.getZ())
                     : ((IWorldReader) world).getBiome(blockPos);
                 return new Tuple<>(blockPos, biome);
             }
         );
     }
 
+    @SuppressWarnings({"RedundantTypeArguments", "unchecked", "RedundantCast"})
     @Override
     default VolumeStream<R, BlockState> getBlockStateStream(final Vector3i min, final Vector3i max, final StreamOptions options) {
         this.api$validateStreamParams(min, max, options);
 
         final boolean shouldCarbonCopy = options.carbonCopy();
-        final MemoryBackedBlockEntityVolume backingVolume = new MemoryBackedBlockEntityVolume(min, max);
+        final ArrayMutableBlockBuffer backingVolume = new ArrayMutableBlockBuffer(min, max);
         return VolumeStreamUtils.<R, BlockState, net.minecraft.block.BlockState, Chunk, BlockPos>generateStream(
             min,
             max,
@@ -320,13 +306,13 @@ public interface IWorldReaderMixin_API<R extends ReadableRegion<R>> extends Read
         );
     }
 
-    @SuppressWarnings({"unchecked"})
+    @SuppressWarnings({"unchecked", "RedundantTypeArguments", "RedundantCast"})
     @Override
     default VolumeStream<R, BlockEntity> getBlockEntityStream(final Vector3i min, final Vector3i max, final StreamOptions options) {
         this.api$validateStreamParams(min, max, options);
 
         final boolean shouldCarbonCopy = options.carbonCopy();
-        final MemoryBackedBlockEntityVolume backingVolume = new MemoryBackedBlockEntityVolume(min, max);
+        final ObjectArrayMutableBlockEntityBuffer backingVolume = new ObjectArrayMutableBlockEntityBuffer(min, max);
         return VolumeStreamUtils.<R, BlockEntity, TileEntity, Chunk, BlockPos>generateStream(
             min,
             max,
@@ -359,7 +345,7 @@ public interface IWorldReaderMixin_API<R extends ReadableRegion<R>> extends Read
         );
     }
 
-    @SuppressWarnings({"ConstantConditions", "RedundantCast", "rawtypes"})
+    @SuppressWarnings({"ConstantConditions", "RedundantCast", "rawtypes", "RedundantTypeArguments", "unchecked"})
     @Override
     default VolumeStream<R, Entity> getEntityStream(final Vector3i min, final Vector3i max, final StreamOptions options) {
         this.api$validateStreamParams(min, max, options);

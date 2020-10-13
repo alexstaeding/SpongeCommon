@@ -22,20 +22,16 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package org.spongepowered.common.util.gen;
+package org.spongepowered.common.world.volume.buffer.biome;
 
 import net.minecraft.world.biome.Biome;
-import org.spongepowered.api.util.DiscreteTransform3;
 import org.spongepowered.api.world.biome.BiomeType;
 import org.spongepowered.api.world.biome.VirtualBiomeType;
-import org.spongepowered.api.world.volume.StorageType;
 import org.spongepowered.api.world.volume.biome.ImmutableBiomeVolume;
-import org.spongepowered.api.world.volume.biome.MutableBiomeVolume;
-import org.spongepowered.api.world.volume.biome.worker.BiomeVolumeStream;
-import org.spongepowered.common.world.extent.ImmutableBiomeViewDownsize;
-import org.spongepowered.common.world.extent.ImmutableBiomeViewTransform;
-import org.spongepowered.common.world.extent.worker.SpongeBiomeVolumeWorker;
+import org.spongepowered.api.world.volume.stream.StreamOptions;
+import org.spongepowered.api.world.volume.stream.VolumeStream;
 import org.spongepowered.math.vector.Vector3i;
+
 import java.util.Arrays;
 
 /**
@@ -58,15 +54,15 @@ public final class ObjectArrayImmutableBiomeBuffer extends AbstractBiomeBuffer i
      * @param start The start position
      * @param size The size
      */
-    public ObjectArrayImmutableBiomeBuffer(BiomeType[] biomes, Vector3i start, Vector3i size) {
+    public ObjectArrayImmutableBiomeBuffer(final BiomeType[] biomes, final Vector3i start, final Vector3i size) {
         super(start, size);
         this.biomes = biomes.clone();
     }
 
     @Override
-    public BiomeType getBiome(int x, int y, int z) {
+    public BiomeType getBiome(final int x, final int y, final int z) {
         this.checkRange(x, y, z);
-        return this.biomes[this.getIndex(x, z)];
+        return this.biomes[this.getIndex(x, y, z)];
     }
 
     /**
@@ -78,9 +74,9 @@ public final class ObjectArrayImmutableBiomeBuffer extends AbstractBiomeBuffer i
      * @param z The X position
      * @return The native biome
      */
-    public Biome getNativeBiome(int x, int y, int z) {
+    public Biome getNativeBiome(final int x, final int y, final int z) {
         this.checkRange(x, y, z);
-        BiomeType type = this.biomes[this.getIndex(x, z)];
+        BiomeType type = this.biomes[this.getIndex(x, y, z)];
         if (type instanceof VirtualBiomeType) {
             type = ((VirtualBiomeType) type).getPersistedType();
         }
@@ -88,40 +84,7 @@ public final class ObjectArrayImmutableBiomeBuffer extends AbstractBiomeBuffer i
     }
 
     @Override
-    public ImmutableBiomeVolume getBiomeView(Vector3i newMin, Vector3i newMax) {
-        this.checkRange(newMin.getX(), newMin.getY(), newMin.getZ());
-        this.checkRange(newMax.getX(), newMax.getY(), newMax.getZ());
-        return new ImmutableBiomeViewDownsize(this, newMin, newMax);
-    }
-
-    @Override
-    public ImmutableBiomeVolume getBiomeView(DiscreteTransform3 transform) {
-        return new ImmutableBiomeViewTransform(this, transform);
-    }
-
-    @Override
-    public BiomeVolumeStream<? extends ImmutableBiomeVolume> getBiomeWorker() {
-        return new SpongeBiomeVolumeWorker<>(this);
-    }
-
-    @Override
-    public MutableBiomeVolume getBiomeCopy(StorageType type) {
-        switch (type) {
-            case STANDARD:
-                return new ObjectArrayMutableBiomeBuffer(this.biomes.clone(), this.start, this.size);
-            case THREAD_SAFE:
-            default:
-                throw new UnsupportedOperationException(type.name());
-        }
-    }
-
-    @Override
-    public ImmutableBiomeVolume getImmutableBiomeCopy() {
-        return this;
-    }
-
-    @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }
@@ -131,7 +94,7 @@ public final class ObjectArrayImmutableBiomeBuffer extends AbstractBiomeBuffer i
         if (!super.equals(o)) {
             return false;
         }
-        ObjectArrayImmutableBiomeBuffer that = (ObjectArrayImmutableBiomeBuffer) o;
+        final ObjectArrayImmutableBiomeBuffer that = (ObjectArrayImmutableBiomeBuffer) o;
         return Arrays.equals(this.biomes, that.biomes);
     }
 
@@ -140,5 +103,11 @@ public final class ObjectArrayImmutableBiomeBuffer extends AbstractBiomeBuffer i
         int result = super.hashCode();
         result = 31 * result + Arrays.hashCode(this.biomes);
         return result;
+    }
+
+    @Override
+    public VolumeStream<ImmutableBiomeVolume, BiomeType> getBiomeStream(Vector3i min, Vector3i max, StreamOptions options
+    ) {
+        return null;
     }
 }

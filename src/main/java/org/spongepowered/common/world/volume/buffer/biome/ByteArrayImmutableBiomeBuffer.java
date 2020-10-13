@@ -22,20 +22,15 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package org.spongepowered.common.util.gen;
+package org.spongepowered.common.world.volume.buffer.biome;
 
-import net.minecraft.world.biome.Biome;
-import org.spongepowered.api.util.DiscreteTransform3;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.spongepowered.api.world.biome.BiomeType;
 import org.spongepowered.api.world.biome.BiomeTypes;
 import org.spongepowered.api.world.schematic.Palette;
-import org.spongepowered.api.world.volume.StorageType;
 import org.spongepowered.api.world.volume.biome.ImmutableBiomeVolume;
-import org.spongepowered.api.world.volume.biome.MutableBiomeVolume;
-import org.spongepowered.api.world.volume.biome.worker.BiomeVolumeStream;
-import org.spongepowered.common.world.extent.ImmutableBiomeViewDownsize;
-import org.spongepowered.common.world.extent.ImmutableBiomeViewTransform;
-import org.spongepowered.common.world.extent.worker.SpongeBiomeVolumeWorker;
+import org.spongepowered.api.world.volume.stream.StreamOptions;
+import org.spongepowered.api.world.volume.stream.VolumeStream;
 import org.spongepowered.common.world.schematic.GlobalPalette;
 import org.spongepowered.math.vector.Vector3i;
 
@@ -51,51 +46,22 @@ public final class ByteArrayImmutableBiomeBuffer extends AbstractBiomeBuffer imp
     private final byte[] biomes;
     private final Palette<BiomeType> palette;
 
-    public ByteArrayImmutableBiomeBuffer(Palette<BiomeType> palette, byte[] biomes, Vector3i start, Vector3i size) {
+    public ByteArrayImmutableBiomeBuffer(final Palette<BiomeType> palette, final byte[] biomes, final Vector3i start, final Vector3i size) {
         super(start, size);
         this.biomes = biomes.clone();
         this.palette = palette;
     }
 
-    private ByteArrayImmutableBiomeBuffer(Palette<BiomeType> palette, Vector3i start, Vector3i size, byte[] biomes) {
+    private ByteArrayImmutableBiomeBuffer(final Palette<BiomeType> palette, final Vector3i start, final Vector3i size, final byte[] biomes) {
         super(start, size);
         this.biomes = biomes;
         this.palette = palette;
     }
 
     @Override
-    public BiomeType getBiome(int x, int y, int z) {
+    public BiomeType getBiome(final int x, final int y, final int z) {
         this.checkRange(x, y, z);
-        BiomeType biomeType = (BiomeType) Biome.getBiomeForId(this.biomes[this.getIndex(x, z)] & 255);
-        return biomeType == null ? BiomeTypes.OCEAN : biomeType;
-    }
-
-    @Override
-    public ImmutableBiomeVolume getBiomeView(Vector3i newMin, Vector3i newMax) {
-        this.checkRange(newMin.getX(), newMin.getY(), newMin.getZ());
-        this.checkRange(newMax.getX(), newMax.getY(), newMax.getZ());
-        return new ImmutableBiomeViewDownsize(this, newMin, newMax);
-    }
-
-    @Override
-    public ImmutableBiomeVolume getBiomeView(DiscreteTransform3 transform) {
-        return new ImmutableBiomeViewTransform(this, transform);
-    }
-
-    @Override
-    public BiomeVolumeStream<? extends ImmutableBiomeVolume> getBiomeWorker() {
-        return new SpongeBiomeVolumeWorker<>(this);
-    }
-
-    @Override
-    public MutableBiomeVolume getBiomeCopy(StorageType type) {
-        switch (type) {
-            case STANDARD:
-                return new ByteArrayMutableBiomeBuffer(this.palette, this.biomes.clone(), this.start, this.size);
-            case THREAD_SAFE:
-            default:
-                throw new UnsupportedOperationException(type.name());
-        }
+        return this.palette.get(this.biomes[this.getIndex(x, y, z)]).orElseGet(BiomeTypes.OCEAN);
     }
 
     /**
@@ -107,12 +73,12 @@ public final class ByteArrayImmutableBiomeBuffer extends AbstractBiomeBuffer imp
      * @param size The size of the volume
      * @return A new buffer using the same array reference
      */
-    public static ImmutableBiomeVolume newWithoutArrayClone(byte[] biomes, Vector3i start, Vector3i size) {
+    public static ImmutableBiomeVolume newWithoutArrayClone(final byte[] biomes, final Vector3i start, final Vector3i size) {
         return new ByteArrayImmutableBiomeBuffer(GlobalPalette.getBiomePalette(), start, size, biomes);
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final @Nullable Object o) {
         if (this == o) {
             return true;
         }
@@ -122,7 +88,7 @@ public final class ByteArrayImmutableBiomeBuffer extends AbstractBiomeBuffer imp
         if (!super.equals(o)) {
             return false;
         }
-        ByteArrayImmutableBiomeBuffer that = (ByteArrayImmutableBiomeBuffer) o;
+        final ByteArrayImmutableBiomeBuffer that = (ByteArrayImmutableBiomeBuffer) o;
         return Arrays.equals(this.biomes, that.biomes) &&
                this.palette.equals(that.palette);
     }
@@ -132,5 +98,11 @@ public final class ByteArrayImmutableBiomeBuffer extends AbstractBiomeBuffer imp
         int result = Objects.hash(super.hashCode(), this.palette);
         result = 31 * result + Arrays.hashCode(this.biomes);
         return result;
+    }
+
+    @Override
+    public VolumeStream<ImmutableBiomeVolume, BiomeType> getBiomeStream(final Vector3i min, final Vector3i max, final StreamOptions options
+    ) {
+        return null;
     }
 }
