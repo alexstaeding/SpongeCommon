@@ -22,27 +22,20 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package org.spongepowered.common.data.holder.nbt;
+package org.spongepowered.common.bridge.data;
 
-import net.minecraft.nbt.CompoundNBT;
-import org.spongepowered.common.data.holder.SpongeDataHolder;
-import org.spongepowered.common.data.provider.nbt.NBTDataType;
+import org.spongepowered.api.data.DataHolder;
+import org.spongepowered.api.data.persistence.DataContainer;
 
-public interface NbtCompoundDataHolder extends SpongeDataHolder {
+public interface DataContainerHolder extends DataHolder {
 
-    /**
-     * The NBT compound which contains backing
-     * data for this data holder.
-     *
-     * @return The nbt compound
-     */
-    CompoundNBT getNbtCompound();
+    DataContainer data$getDataContainer();
 
-    /**
-     * Gets the {@link NBTDataType} which this
-     * nbt data holder contains data for.
-     *
-     * @return The nbt data type
-     */
-    NBTDataType getNbtDataType();
+    interface Mutable extends DataContainerHolder {
+        void data$setDataContainer(DataContainer container);
+    }
+
+    interface Immutable<T extends DataHolder> extends DataContainerHolder {
+        T data$withDataContainer(DataContainer container);
+    }
 }

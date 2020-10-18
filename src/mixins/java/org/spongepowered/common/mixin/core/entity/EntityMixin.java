@@ -35,7 +35,6 @@ import net.minecraft.network.datasync.EntityDataManager;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.DamageSource;
 import net.minecraft.util.SoundEvent;
-import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.Vec3d;
@@ -67,6 +66,7 @@ import org.spongepowered.common.SpongeCommon;
 import org.spongepowered.common.adventure.SpongeAdventure;
 import org.spongepowered.common.bridge.TimingBridge;
 import org.spongepowered.common.bridge.command.CommandSourceProviderBridge;
+import org.spongepowered.common.bridge.data.CustomDataHolderBridge;
 import org.spongepowered.common.bridge.data.DataCompoundHolder;
 import org.spongepowered.common.bridge.data.InvulnerableTrackedBridge;
 import org.spongepowered.common.bridge.data.VanishableBridge;
@@ -77,7 +77,8 @@ import org.spongepowered.common.bridge.entity.PlatformEntityBridge;
 import org.spongepowered.common.bridge.world.PlatformITeleporterBridge;
 import org.spongepowered.common.bridge.world.PlatformServerWorldBridge;
 import org.spongepowered.common.bridge.world.WorldBridge;
-import org.spongepowered.common.data.SpongeDataManager;
+import org.spongepowered.common.data.provider.nbt.NBTDataType;
+import org.spongepowered.common.data.provider.nbt.NBTDataTypes;
 import org.spongepowered.common.entity.EntityUtil;
 import org.spongepowered.common.event.tracking.PhaseTracker;
 import org.spongepowered.common.util.Constants;
@@ -86,7 +87,6 @@ import org.spongepowered.common.world.DimensionChangeResult;
 import org.spongepowered.common.world.portal.WrappedITeleporterPortalType;
 import org.spongepowered.math.vector.Vector3d;
 
-import java.util.List;
 import java.util.Random;
 
 import javax.annotation.Nullable;
@@ -535,7 +535,7 @@ public abstract class EntityMixin implements EntityBridge, PlatformEntityBridge,
      */
 
     protected void impl$readFromSpongeCompound(final CompoundNBT compound) {
-        SpongeDataManager.getInstance().deserializeCustomData(compound, this);
+        CustomDataHolderBridge.syncTagToCustom(this);
 
         if (this instanceof GrieferBridge && ((GrieferBridge) this).bridge$isGriefer() && compound.contains(Constants.Sponge.Entity.CAN_GRIEF)) {
             ((GrieferBridge) this).bridge$setCanGrief(compound.getBoolean(Constants.Sponge.Entity.CAN_GRIEF));
@@ -549,7 +549,7 @@ public abstract class EntityMixin implements EntityBridge, PlatformEntityBridge,
             this.bridge$setInvisible(compound.getBoolean(Constants.Sponge.Entity.IS_INVISIBLE));
         }
 
-        SpongeDataManager.getInstance().syncCustomToTag(this);
+        CustomDataHolderBridge.syncCustomToTag(this);
     }
 
 
@@ -562,9 +562,8 @@ public abstract class EntityMixin implements EntityBridge, PlatformEntityBridge,
      *
      * @param compound The SpongeData compound to write to
      */
-
     protected void impl$writeToSpongeCompound(final CompoundNBT compound) {
-        SpongeDataManager.getInstance().serializeCustomData(compound, this);
+        CustomDataHolderBridge.syncCustomToTag(this);
 
         if (this instanceof GrieferBridge && ((GrieferBridge) this).bridge$isGriefer() && ((GrieferBridge) this).bridge$canGrief()) {
             compound.putBoolean(Constants.Sponge.Entity.CAN_GRIEF, true);
@@ -964,6 +963,11 @@ public abstract class EntityMixin implements EntityBridge, PlatformEntityBridge,
         this.impl$nbt = nbt;
     }
 
+    @Override
+    public NBTDataType getNbtDataType() {
+        return NBTDataTypes.ENTITY;
+    }
+
     @Inject(method = "writeWithoutTypeId", at = @At("RETURN"))
     private void impl$WriteSpongeDataToCompound(final CompoundNBT compound, final CallbackInfoReturnable<CompoundNBT> ci) {
         if (this.data$hasSpongeData()) {
@@ -985,10 +989,10 @@ public abstract class EntityMixin implements EntityBridge, PlatformEntityBridge,
         this.data$setCompound(compound); // For vanilla we set the incoming nbt
         if (this.data$hasSpongeData()) {
             // Deserialize our data...
-            SpongeDataManager.getInstance().deserializeCustomData(this.data$getSpongeData(), this);
+            CustomDataHolderBridge.syncTagToCustom(this);
             this.data$setCompound(null); // For vanilla this will be recreated empty in the next call - for Forge it reuses the existing compound instead
             // ReSync our data (includes failed data)
-            SpongeDataManager.getInstance().syncCustomToTag(this);
+            CustomDataHolderBridge.syncCustomToTag(this);
         } else {
             this.data$setCompound(null); // No data? No need to keep the nbt
         }

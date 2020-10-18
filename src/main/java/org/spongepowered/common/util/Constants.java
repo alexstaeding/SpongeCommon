@@ -777,12 +777,14 @@ public final class Constants {
         public static final String ENTITY_DIMENSION = "Dimension";
         public static final String PASSENGERS = "Passengers";
         public static final String ENTITY_ROTATION = "Rotation";
+        public static final String ENTITY_UUID = "UUID";
         // Entities
         public static final DataQuery CLASS = of("EntityClass");
         public static final DataQuery UUID = of("EntityUniqueId");
         public static final DataQuery TYPE = of("EntityType");
         public static final DataQuery ROTATION = of("Rotation");
         public static final DataQuery SCALE = of("Scale");
+        public static final DataQuery CUSTOM_NAME = of("CustomName");
 
         public static final String ATTACK_ENTITY_FROM_MAPPING = "attackEntityFrom";
         public static final String ATTACK_ENTITY_FROM_OBFUSCATED = "func_70097_a";

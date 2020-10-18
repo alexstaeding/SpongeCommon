@@ -41,6 +41,8 @@ import org.spongepowered.api.data.Keys;
 import org.spongepowered.api.data.persistence.DataContainer;
 import org.spongepowered.api.data.persistence.Queries;
 import org.spongepowered.api.data.value.Value;
+import org.spongepowered.api.entity.EntityArchetype;
+import org.spongepowered.api.entity.EntitySnapshot;
 import org.spongepowered.api.entity.EntityType;
 import org.spongepowered.api.entity.living.player.Player;
 import org.spongepowered.api.util.AABB;
@@ -250,7 +252,6 @@ public abstract class EntityMixin_API implements org.spongepowered.api.entity.En
         final Transform transform = this.getTransform();
         final CompoundNBT compound = new CompoundNBT();
         this.shadow$writeUnlessRemoved(compound);
-        Constants.NBT.filterSpongeCustomData(compound); // We must filter the custom data so it isn't stored twice
         final DataContainer unsafeNbt = NbtTranslator.getInstance().translateFrom(compound);
         final DataContainer container = DataContainer.createNew()
                 .set(Queries.CONTENT_VERSION, this.getContentVersion())
@@ -271,12 +272,10 @@ public abstract class EntityMixin_API implements org.spongepowered.api.entity.En
                 .set(Queries.POSITION_Y, transform.getScale().getY())
                 .set(Queries.POSITION_Z, transform.getScale().getZ())
                 .getContainer()
-                .set(Constants.Entity.TYPE, net.minecraft.entity.EntityType.getKey(this.type).toString())
+                .set(Constants.Entity.TYPE, this.getType().getKey())
                 .set(Constants.Sponge.UNSAFE_NBT, unsafeNbt);
-        // TODO - Custom data store
         return container;
     }
-
 
     @Override
     public org.spongepowered.api.entity.Entity copy() {
@@ -308,6 +307,16 @@ public abstract class EntityMixin_API implements org.spongepowered.api.entity.En
     public Set<Value.Immutable<?>> getValues() {
         // TODO: Merge custom and Vanilla values and return the merged result.
         return this.api$getVanillaValues();
+    }
+
+    @Override
+    public EntitySnapshot createSnapshot() {
+        return EntitySnapshot.builder().from(this).build();
+    }
+
+    @Override
+    public EntityArchetype createArchetype() {
+        return EntityArchetype.builder().from(this).build();
     }
 
     protected Set<Value.Immutable<?>> api$getVanillaValues() {

@@ -25,16 +25,15 @@
 package org.spongepowered.common.data.provider.inventory;
 
 import org.spongepowered.common.data.provider.DataProviderRegistratorBuilder;
-import org.spongepowered.common.data.provider.DataProviderRegistry;
 
 public final class InventoryDataProviders extends DataProviderRegistratorBuilder {
 
-    public InventoryDataProviders(final DataProviderRegistry registry) {
-        super(registry);
+    public InventoryDataProviders() {
+        super("inventory");
     }
 
     @Override
-    public void register() {
+    public void registerProviders() {
         InventoryData.register(this.registrator);
         SlotData.register(this.registrator);
     }

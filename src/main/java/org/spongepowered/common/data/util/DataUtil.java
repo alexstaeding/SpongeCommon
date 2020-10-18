@@ -34,10 +34,13 @@ import org.spongepowered.api.data.persistence.Queries;
 import org.spongepowered.api.world.ServerLocation;
 import org.spongepowered.common.SpongeCommon;
 import org.spongepowered.common.util.Constants;
+import org.spongepowered.math.vector.Vector3d;
 import org.spongepowered.math.vector.Vector3i;
 
 import java.util.UUID;
 import java.util.function.Supplier;
+
+import javax.annotation.Nullable;
 
 public final class DataUtil {
 
@@ -50,14 +53,11 @@ public final class DataUtil {
 
     public static ServerLocation getLocation(final DataView view, final boolean castToInt) {
         final ResourceKey world = view.getKey(Queries.WORLD_KEY).orElseThrow(dataNotFound());
-        final double x = view.getDouble(Queries.POSITION_X).orElseThrow(dataNotFound());
-        final double y = view.getDouble(Queries.POSITION_Y).orElseThrow(dataNotFound());
-        final double z = view.getDouble(Queries.POSITION_Z).orElseThrow(dataNotFound());
+        final Vector3d pos = DataUtil.getPosition3d(view, null);
         if (castToInt) {
-            return ServerLocation.of(SpongeCommon.getGame().getServer().getWorldManager().getWorld(world).orElseThrow(dataNotFound()), (int) x, (int) y
-                , (int) z);
+            return ServerLocation.of(SpongeCommon.getGame().getServer().getWorldManager().getWorld(world).orElseThrow(dataNotFound()), pos.toInt());
         }
-        return ServerLocation.of(SpongeCommon.getGame().getServer().getWorldManager().getWorld(world).orElseThrow(dataNotFound()), x, y, z);
+        return ServerLocation.of(SpongeCommon.getGame().getServer().getWorldManager().getWorld(world).orElseThrow(dataNotFound()), pos);
     }
 
     public static Vector3i getPosition3i(final DataView view) {
@@ -71,5 +71,13 @@ public final class DataUtil {
 
     private static Supplier<InvalidDataException> dataNotFound() {
         return () -> new InvalidDataException("not found");
+    }
+
+    public static Vector3d getPosition3d(final DataView view, @Nullable final DataQuery query) {
+        final DataView internal = query == null ? view : view.getView(query).orElseThrow(dataNotFound());
+        final double x = internal.getDouble(Queries.POSITION_X).orElseThrow(dataNotFound());
+        final double y = internal.getDouble(Queries.POSITION_Y).orElseThrow(dataNotFound());
+        final double z = internal.getDouble(Queries.POSITION_Z).orElseThrow(dataNotFound());
+        return new Vector3d(x, y, z);
     }
 }

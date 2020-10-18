@@ -25,17 +25,16 @@
 package org.spongepowered.common.data.provider.generic;
 
 import org.spongepowered.common.data.provider.DataProviderRegistratorBuilder;
-import org.spongepowered.common.data.provider.DataProviderRegistry;
 
 public final class GenericDataProviders extends DataProviderRegistratorBuilder {
 
-    public GenericDataProviders(final DataProviderRegistry registry) {
-        super(registry);
+    public GenericDataProviders() {
+        super("generic");
     }
 
 
     @Override
-    public void register() {
+    public void registerProviders() {
         INameableData.register(this.registrator);
     }
 }

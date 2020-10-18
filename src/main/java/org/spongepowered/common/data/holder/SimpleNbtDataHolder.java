@@ -22,5 +22,37 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-@org.checkerframework.framework.qual.DefaultQualifier(org.checkerframework.checker.nullness.qual.NonNull.class)
-package org.spongepowered.common.data.holder.nbt;
+package org.spongepowered.common.data.holder;
+
+import net.minecraft.nbt.CompoundNBT;
+import org.spongepowered.common.bridge.data.DataCompoundHolder;
+import org.spongepowered.common.data.provider.nbt.NBTDataType;
+
+/**
+ * Simple mutable data holder wrapper around a nbt compound. {@link org.spongepowered.common.bridge.data.CustomDataHolderBridge} is mixed in.
+ * Used for preparing data for Immutable data holders like {@link org.spongepowered.api.entity.EntitySnapshot}
+ */
+public class SimpleNbtDataHolder implements DataCompoundHolder, SpongeMutableDataHolder {
+    private CompoundNBT nbt;
+    private final NBTDataType dataType;
+
+    public SimpleNbtDataHolder(CompoundNBT nbt, NBTDataType dataType) {
+        this.nbt = nbt;
+        this.dataType = dataType;
+    }
+
+    @Override
+    public CompoundNBT data$getCompound() {
+        return this.nbt;
+    }
+
+    @Override 
+    public void data$setCompound(CompoundNBT nbt) {
+        this.nbt = nbt;
+    }
+
+    @Override 
+    public NBTDataType getNbtDataType() {
+        return this.dataType;
+    }
+}
