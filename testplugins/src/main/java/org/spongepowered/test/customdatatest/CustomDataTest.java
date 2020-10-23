@@ -161,7 +161,7 @@ public final class CustomDataTest {
                 .build();
 
 
-        final DataStore dataStore = DataStore.of(this.myDataKey, DataQuery.of("mykey"), ItemStack.class, User.class, ServerPlayer.class);
+        final DataStore dataStore = DataStore.of(this.myDataKey, DataQuery.of("mykey"), ItemStack.class, User.class, ServerPlayer.class, BlockEntity.class);
         final DataRegistration myRegistration = DataRegistration.builder()
                 .dataKey(this.myDataKey)
                 .store(dataStore)

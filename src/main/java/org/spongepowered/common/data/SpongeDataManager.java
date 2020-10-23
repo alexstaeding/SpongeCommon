@@ -319,7 +319,7 @@ public final class SpongeDataManager implements DataManager {
         this.registrations.put(registration.getKey(), registration);
         this.registrationByPluginContainerId.computeIfAbsent(registration.getPluginContainer().getMetadata().getId(), k -> new ArrayList<>()).add(registration);
 
-        for (DataStore dataStore : registration.getDataStores()) {
+        for (final DataStore dataStore : registration.getDataStores()) {
             this.dataStoreRegistry.register(dataStore, registration.getKeys());
         }
 
@@ -328,10 +328,10 @@ public final class SpongeDataManager implements DataManager {
         }
     }
 
-    private <V extends Value<E>, E> void registerCustomDataProviderForKey(SpongeDataRegistration registration, Key<V> key) {
+    private <V extends Value<E>, E> void registerCustomDataProviderForKey(final SpongeDataRegistration registration, final Key<V> key) {
         final Collection<DataProvider<V, E>> providers = registration.getProvidersFor(key);
 
-        Set<TypeToken<? extends DataHolder>> dataStoreSupportedTokens = new HashSet<>();
+        final Set<TypeToken<? extends DataHolder>> dataStoreSupportedTokens = new HashSet<>();
         this.dataStoreRegistry.getDataStores(key).stream().map(DataStore::getSupportedTokens).forEach(dataStoreSupportedTokens::addAll);
 
         for (DataProvider<V, E> provider : providers) {

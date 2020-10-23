@@ -42,6 +42,7 @@ import org.spongepowered.api.event.SpongeEventFactory;
 import org.spongepowered.api.event.cause.entity.SpawnType;
 import org.spongepowered.api.event.entity.SpawnEntityEvent;
 import org.spongepowered.api.world.ServerLocation;
+import org.spongepowered.common.SpongeImplHooks;
 import org.spongepowered.common.bridge.data.DataCompoundHolder;
 import org.spongepowered.common.bridge.data.DataContainerHolder;
 import org.spongepowered.common.bridge.world.storage.WorldInfoBridge;
@@ -123,6 +124,9 @@ public class SpongeEntityArchetype extends AbstractArchetype<EntityType, EntityS
 
     @Override
     public Optional<org.spongepowered.api.entity.Entity> apply(ServerLocation location) {
+        if (!SpongeImplHooks.onServerThread()) {
+            return Optional.empty();
+        }
         final org.spongepowered.api.world.server.ServerWorld spongeWorld = location.getWorld();
         final ServerWorld worldServer = (ServerWorld) spongeWorld;
 
@@ -195,7 +199,7 @@ public class SpongeEntityArchetype extends AbstractArchetype<EntityType, EntityS
     }
 
     private Vector3d getRotation() {
-        ListNBT listnbt3 = this.data.getList("Rotation", 5);
+        final ListNBT listnbt3 = this.data.getList("Rotation", 5);
         float rotationYaw = listnbt3.getFloat(0);
         float rotationPitch = listnbt3.getFloat(1);
         return new Vector3d(rotationPitch, rotationYaw, 0);

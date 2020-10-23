@@ -27,7 +27,7 @@ package org.spongepowered.common.bridge.data;
 import org.spongepowered.api.data.DataHolder;
 import org.spongepowered.api.data.persistence.DataContainer;
 
-public interface DataContainerHolder extends DataHolder {
+public interface DataContainerHolder {
 
     DataContainer data$getDataContainer();
 

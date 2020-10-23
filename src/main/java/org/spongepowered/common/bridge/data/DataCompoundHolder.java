@@ -29,7 +29,7 @@ import org.spongepowered.api.data.DataHolder;
 import org.spongepowered.common.data.provider.nbt.NBTDataType;
 import org.spongepowered.common.util.Constants;
 
-public interface DataCompoundHolder extends DataHolder {
+public interface DataCompoundHolder {
 
     CompoundNBT data$getCompound();
     void data$setCompound(CompoundNBT nbt);
@@ -86,5 +86,5 @@ public interface DataCompoundHolder extends DataHolder {
      *
      * @return The nbt data type
      */
-    NBTDataType getNbtDataType();
+    NBTDataType data$getNbtDataType();
 }

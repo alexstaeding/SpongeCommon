@@ -964,7 +964,7 @@ public abstract class EntityMixin implements EntityBridge, PlatformEntityBridge,
     }
 
     @Override
-    public NBTDataType getNbtDataType() {
+    public NBTDataType data$getNbtDataType() {
         return NBTDataTypes.ENTITY;
     }
 

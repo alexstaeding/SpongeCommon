@@ -65,7 +65,7 @@ public class SpongeEntityArchetypeBuilder extends AbstractDataBuilder<EntityArch
     public EntityArchetype.Builder from(final EntityArchetype value) {
         this.entityType = value.getType();
         this.entityData = value.getEntityData();
-        this.manipulator = null; // TODO get cached values if present
+        this.manipulator = null;
         return this;
     }
 

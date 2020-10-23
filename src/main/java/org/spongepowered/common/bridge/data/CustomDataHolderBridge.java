@@ -51,18 +51,19 @@ import java.util.stream.Collectors;
 
 public interface CustomDataHolderBridge {
 
-    static void serializeCustomData(DataCompoundHolder object) {
+    static void serializeCustomData(final DataCompoundHolder object) {
         final CompoundNBT compound = object.data$getCompound();
         if (!(object instanceof CustomDataHolderBridge)) {
             return;
         }
 
         final DataManipulator.Mutable manipulator = ((CustomDataHolderBridge) object).bridge$getManipulator();
-        final DataHolder dataHolder = object;
+        final DataHolder dataHolder = (DataHolder) object;
         final TypeToken<? extends DataHolder> dataHolderType = TypeToken.of(dataHolder.getClass());
 
-        final Set<DataStore> dataStores = manipulator.getKeys().stream().map(key -> SpongeDataManager.getDatastoreRegistry().getDataStore(key, dataHolderType))
-                                                                        .collect(Collectors.toSet());
+        final Set<DataStore> dataStores = manipulator.getKeys().stream()
+                .map(key -> SpongeDataManager.getDatastoreRegistry().getDataStore(key, dataHolderType))
+                .collect(Collectors.toSet());
         for (DataStore dataStore : dataStores) {
             final CompoundNBT serialized = NbtTranslator.getInstance().translate(dataStore.serialize(manipulator));
             compound.merge(serialized);
@@ -80,7 +81,7 @@ public interface CustomDataHolderBridge {
         }
     }
 
-    static void deserializeCustomData(DataCompoundHolder object) {
+    static void deserializeCustomData(final DataCompoundHolder object) {
         final CompoundNBT compound = object.data$getCompound();
         if (compound == null) {
             return;
@@ -100,7 +101,7 @@ public interface CustomDataHolderBridge {
                         .stream().map(CustomDataHolderBridge::updateDataViewForDataManipulator).collect(Collectors.toList());
         spongeData.set(Constants.Sponge.CUSTOM_MANIPULATOR_LIST, updatedDataViews);
 
-        final TypeToken<? extends DataHolder> typeToken = TypeToken.of(object.getClass());
+        final TypeToken<? extends DataHolder> typeToken = TypeToken.of((Class<? extends DataHolder>)object.getClass());
         // Find DataStores
         final List<DataStore> dataStores = new ArrayList<>();
         final ImmutableList.Builder<DataView> failed = ImmutableList.builder();

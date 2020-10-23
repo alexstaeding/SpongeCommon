@@ -165,7 +165,7 @@ public abstract class ItemStackMixin implements CustomDataHolderBridge, DataComp
     }
 
     @Override
-    public NBTDataType getNbtDataType() {
+    public NBTDataType data$getNbtDataType() {
         return NBTDataTypes.ITEMSTACK;
     }
 }

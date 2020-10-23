@@ -177,8 +177,8 @@ public final class EntityData {
 
         registrator.newDataStore(SpongeEntitySnapshot.class, SpongeEntityArchetype.class)
                 .dataStore(Keys.DISPLAY_NAME,
-                (dv, v) -> dv.set(Constants.Entity.CUSTOM_NAME, SpongeAdventure.json(v)),
-                dv -> dv.getString(Constants.Entity.CUSTOM_NAME).map(SpongeAdventure::json));
+                    (dv, v) -> dv.set(Constants.Entity.CUSTOM_NAME, SpongeAdventure.json(v)),
+                    dv -> dv.getString(Constants.Entity.CUSTOM_NAME).map(SpongeAdventure::json));
 
         // @formatter:on
     }
