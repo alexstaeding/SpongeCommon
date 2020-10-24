@@ -53,21 +53,22 @@ public abstract class AbstractArchetype<C extends CatalogType, S extends Locatab
 
     protected final C type;
     protected CompoundNBT data;
-    private final DataProviderLookup lookup = SpongeDataManager.getProviderRegistry().getProviderLookup(this.getClass());
 
     protected AbstractArchetype(final C type, final CompoundNBT data) {
         this.type = type;
         this.data = data;
     }
 
+    public abstract DataProviderLookup getLookup();
+
     @Override
     public <V extends Value<E>, E> DataProvider<V, E> getProviderFor(Key<V> key) {
-        return this.lookup.getProvider(key);
+        return this.getLookup().getProvider(key);
     }
 
     @Override
     public Collection<DataProvider<?, ?>> getAllProviders() {
-        return this.lookup.getAllProviders();
+        return this.getLookup().getAllProviders();
     }
 
     protected abstract ValidationType getValidationType();

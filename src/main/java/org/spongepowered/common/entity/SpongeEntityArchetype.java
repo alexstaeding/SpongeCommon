@@ -47,10 +47,12 @@ import org.spongepowered.common.bridge.data.DataCompoundHolder;
 import org.spongepowered.common.bridge.data.DataContainerHolder;
 import org.spongepowered.common.bridge.world.storage.WorldInfoBridge;
 import org.spongepowered.common.data.AbstractArchetype;
+import org.spongepowered.common.data.SpongeDataManager;
 import org.spongepowered.common.data.nbt.validation.RawDataValidator;
 import org.spongepowered.common.data.nbt.validation.ValidationType;
 import org.spongepowered.common.data.nbt.validation.Validations;
 import org.spongepowered.common.data.persistence.NbtTranslator;
+import org.spongepowered.common.data.provider.DataProviderLookup;
 import org.spongepowered.common.data.provider.nbt.NBTDataType;
 import org.spongepowered.common.data.provider.nbt.NBTDataTypes;
 import org.spongepowered.common.event.tracking.PhaseTracker;
@@ -71,6 +73,8 @@ public class SpongeEntityArchetype extends AbstractArchetype<EntityType, EntityS
     // TODO actually validate stuff
     public static final ImmutableList<RawDataValidator> VALIDATORS = ImmutableList.of();
 
+    private static final DataProviderLookup lookup = SpongeDataManager.getProviderRegistry().getProviderLookup(SpongeEntityArchetype.class);
+
     @Nullable
     private Vector3d position;
 
@@ -86,6 +90,11 @@ public class SpongeEntityArchetype extends AbstractArchetype<EntityType, EntityS
     @Nullable
     public CompoundNBT getData() {
         return this.data;
+    }
+
+    @Override
+    public DataProviderLookup getLookup() {
+        return SpongeEntityArchetype.lookup;
     }
 
     public Optional<Vector3d> getPosition() {
