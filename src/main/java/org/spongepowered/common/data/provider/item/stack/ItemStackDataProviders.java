@@ -25,11 +25,12 @@
 package org.spongepowered.common.data.provider.item.stack;
 
 import org.spongepowered.common.data.provider.DataProviderRegistratorBuilder;
+import org.spongepowered.common.util.Constants;
 
 public final class ItemStackDataProviders extends DataProviderRegistratorBuilder {
 
     public ItemStackDataProviders() {
-        super("itemstack");
+        super(Constants.Sponge.Entity.DataRegistration.ITEMSTACK);
     }
 
     @Override

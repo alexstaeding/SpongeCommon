@@ -25,11 +25,12 @@
 package org.spongepowered.common.data.provider.block.entity;
 
 import org.spongepowered.common.data.provider.DataProviderRegistratorBuilder;
+import org.spongepowered.common.util.Constants;
 
 public final class TileEntityDataProviders extends DataProviderRegistratorBuilder {
 
     public TileEntityDataProviders() {
-        super("tileentity");
+        super(Constants.Sponge.Entity.DataRegistration.TILEENTITY);
     }
 
     @Override

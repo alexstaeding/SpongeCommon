@@ -25,11 +25,12 @@
 package org.spongepowered.common.data.provider.generic;
 
 import org.spongepowered.common.data.provider.DataProviderRegistratorBuilder;
+import org.spongepowered.common.util.Constants;
 
 public final class GenericDataProviders extends DataProviderRegistratorBuilder {
 
     public GenericDataProviders() {
-        super("generic");
+        super(Constants.Sponge.Entity.DataRegistration.GENERIC);
     }
 
 

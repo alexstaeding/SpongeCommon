@@ -25,11 +25,12 @@
 package org.spongepowered.common.data.provider.entity;
 
 import org.spongepowered.common.data.provider.DataProviderRegistratorBuilder;
+import org.spongepowered.common.util.Constants;
 
 public final class EntityDataProviders extends DataProviderRegistratorBuilder {
 
     public EntityDataProviders() {
-        super("entity");
+        super(Constants.Sponge.Entity.DataRegistration.ENTITY);
     }
 
     @Override

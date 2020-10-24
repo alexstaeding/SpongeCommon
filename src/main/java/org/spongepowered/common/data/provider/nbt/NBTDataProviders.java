@@ -25,11 +25,12 @@
 package org.spongepowered.common.data.provider.nbt;
 
 import org.spongepowered.common.data.provider.DataProviderRegistratorBuilder;
+import org.spongepowered.common.util.Constants;
 
 public final class NBTDataProviders extends DataProviderRegistratorBuilder {
 
     public NBTDataProviders() {
-        super("nbt");
+        super(Constants.Sponge.Entity.DataRegistration.NBT);
     }
 
     @Override

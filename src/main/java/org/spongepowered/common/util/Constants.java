@@ -260,6 +260,18 @@ public final class Constants {
                 public static final String HEALTH_SCALE = "HealthScale";
             }
 
+            public static final class DataRegistration {
+                public static final String INVENTORY = "inventory";
+                public static final String TILEENTITY = "tileentity";
+                public static final String LOCATION = "location";
+                public static final String BLOCKSTATE = "blockstate";
+                public static final String ENTITY = "entity";
+                public static final String GENERIC = "generic";
+                public static final String ITEMSTACK = "itemstack";
+                public static final String ITEM = "item";
+                public static final String NBT = "nbt";
+            }
+
         }
 
         public static final class User {
