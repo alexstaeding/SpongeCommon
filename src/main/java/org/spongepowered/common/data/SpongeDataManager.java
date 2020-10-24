@@ -83,6 +83,7 @@ import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
@@ -93,9 +94,6 @@ public final class SpongeDataManager implements DataManager {
     private final DataStoreRegistry dataStoreRegistry = new DataStoreRegistry();
     private final DataProviderRegistry dataProviderRegistry = new DataProviderRegistry();
     private final Map<ResourceKey, SpongeDataRegistration> registrations = new HashMap<>();
-
-    private static final TypeToken<CatalogType> catalogTypeToken = TypeToken.of(CatalogType.class);
-    private static final TypeToken<DataSerializable> dataSerializableTypeToken = TypeToken.of(DataSerializable.class);
 
     static {
         TypeSerializerCollection.defaults().register(
@@ -130,7 +128,6 @@ public final class SpongeDataManager implements DataManager {
     private List<DataContentUpdater> customDataUpdaters = new ArrayList<>();
 
     private final Map<String, List<SpongeDataRegistration>> registrationByPluginContainerId = new IdentityHashMap<>();
-    private final Map<Key<?>, SpongeDataRegistration> registrationByKey = new HashMap<>();
     private final Map<String, SpongeDataRegistration> legacyRegistrations = new HashMap<>();
     private List<KeyBasedDataListener<?>> keyListeners = new ArrayList<>();
 
@@ -149,8 +146,8 @@ public final class SpongeDataManager implements DataManager {
 
     @Override
     public <T extends DataSerializable> void registerBuilder(Class<T> clazz, DataBuilder<T> builder) {
-        Preconditions.checkNotNull(clazz);
-        Preconditions.checkNotNull(builder);
+        Objects.requireNonNull(clazz);
+        Objects.requireNonNull(builder);
         DataBuilder<?> previousBuilder = this.builders.putIfAbsent(clazz, builder);
         if (previousBuilder != null) {
             SpongeCommon.getLogger().warn("A DataBuilder has already been registered for {}. Attempted to register {} instead.", clazz,
@@ -164,12 +161,12 @@ public final class SpongeDataManager implements DataManager {
 
     @Override
     public <T extends DataSerializable> void registerContentUpdater(Class<T> clazz, DataContentUpdater updater) {
-        Preconditions.checkNotNull(updater, "DataContentUpdater was null!");
-        Preconditions.checkNotNull(clazz, "DataSerializable class was null!");
+        Objects.requireNonNull(updater, "DataContentUpdater was null!");
+        Objects.requireNonNull(clazz, "DataSerializable class was null!");
 
         final List<DataContentUpdater> updaters = this.updatersMap.computeIfAbsent(clazz, k -> new ArrayList<>());
         updaters.add(updater);
-        Collections.sort(updaters, Constants.Functional.DATA_CONTENT_UPDATER_COMPARATOR);
+        updaters.sort(Constants.Functional.DATA_CONTENT_UPDATER_COMPARATOR);
     }
 
     public void registerCustomDataContentUpdater(DataContentUpdater updater) {
@@ -181,11 +178,11 @@ public final class SpongeDataManager implements DataManager {
         Preconditions.checkArgument(fromVersion != toVersion, "Attempting to convert to the same version!");
         Preconditions.checkArgument(fromVersion < toVersion, "Attempting to backwards convert data! This isn't supported!");
         final List<DataContentUpdater> updaters = this.updatersMap.get(
-            Preconditions.checkNotNull(clazz, "DataSerializable class was null!"));
+            Objects.requireNonNull(clazz, "DataSerializable class was null!"));
         if (updaters == null) {
             return Optional.empty();
         }
-        return getWrappedContentUpdater(clazz, fromVersion, toVersion, updaters);
+        return SpongeDataManager.getWrappedContentUpdater(clazz, fromVersion, toVersion, updaters);
     }
 
     public Optional<DataContentUpdater> getWrappedCustomContentUpdater(Class<Mutable> mutableClass, int version, int currentCustomData) {
@@ -218,7 +215,7 @@ public final class SpongeDataManager implements DataManager {
     @Override
     @SuppressWarnings({"unchecked"})
     public <T extends DataSerializable> Optional<DataBuilder<T>> getBuilder(Class<T> clazz) {
-        Preconditions.checkNotNull(clazz);
+        Objects.requireNonNull(clazz);
         DataBuilder<?> dataBuilder = this.builders.get(clazz);
         if (dataBuilder != null) {
             return Optional.of((DataBuilder<T>) dataBuilder);
@@ -234,7 +231,7 @@ public final class SpongeDataManager implements DataManager {
 
     @Override
     public <T extends DataHolder.Immutable<T>, B extends DataHolderBuilder.Immutable<T, B>> void register(Class<T> holderClass, B builder) {
-        final DataHolderBuilder.Immutable<?, ?> previous = this.immutableDataBuilderMap.putIfAbsent(Preconditions.checkNotNull(holderClass), Preconditions.checkNotNull(builder));
+        final DataHolderBuilder.Immutable<?, ?> previous = this.immutableDataBuilderMap.putIfAbsent(Objects.requireNonNull(holderClass), Objects.requireNonNull(builder));
         if (previous != null) {
             throw new IllegalStateException("Already registered the DataUtil for " + holderClass.getCanonicalName());
         }
@@ -243,7 +240,7 @@ public final class SpongeDataManager implements DataManager {
     @SuppressWarnings("unchecked")
     @Override
     public <T extends DataHolder.Immutable<T>, B extends DataHolderBuilder.Immutable<T, B>> Optional<B> getImmutableBuilder(Class<T> holderClass) {
-        return Optional.ofNullable((B) this.immutableDataBuilderMap.get(Preconditions.checkNotNull(holderClass)));
+        return Optional.ofNullable((B) this.immutableDataBuilderMap.get(Objects.requireNonNull(holderClass)));
     }
 
     public static void finalizeRegistration() {
@@ -264,7 +261,7 @@ public final class SpongeDataManager implements DataManager {
 
     @Override
     public void registerLegacyManipulatorIds(String legacyId, DataRegistration registration) {
-        Preconditions.checkState(allowRegistrations);
+        Preconditions.checkState(SpongeDataManager.allowRegistrations, "Data Registration is not allowed anymore.");
         final SpongeDataRegistration previous = this.legacyRegistrations.putIfAbsent(legacyId, (SpongeDataRegistration) registration);
         if (previous != null) {
             throw new IllegalStateException("Legacy registration id already registered: id" + legacyId + " for registration: " + registration);
@@ -312,7 +309,7 @@ public final class SpongeDataManager implements DataManager {
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     public void registerCustomDataRegistration(SpongeDataRegistration registration) {
-        Preconditions.checkState(SpongeDataManager.allowRegistrations);
+        Preconditions.checkState(SpongeDataManager.allowRegistrations, "Data Registration is not allowed anymore.");
 
         Preconditions.checkState(registration.key.getNamespace().equals(registration.plugin.getMetadata().getId()), "Registration namespace (%s) is not matching plugin id (%s)", registration.key, registration.plugin.getMetadata().getId());
 
