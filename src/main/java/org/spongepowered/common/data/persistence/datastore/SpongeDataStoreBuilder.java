@@ -112,6 +112,8 @@ public class SpongeDataStoreBuilder implements DataStore.Builder, DataStore.Buil
                         .get(((Class<? extends CatalogType>) keyType), ResourceKey.resolve(key.toString()));
             } else if (((Class<?>) keyType).isEnum()) {
                 keyDeserializer = key -> Optional.ofNullable(Enum.valueOf(((Class<? extends Enum>) keyType), key.toString()));
+            } else if (keyType == String.class) {
+                keyDeserializer = key -> Optional.of(key.toString());
             } else {
                 throw new UnsupportedOperationException("Unsupported map-key type " + keyType);
             }
@@ -247,7 +249,8 @@ public class SpongeDataStoreBuilder implements DataStore.Builder, DataStore.Buil
             final Optional<DataView> existingContainer =
                     viewList.stream().filter(potentialContainer -> potentialContainer.getString(Constants.Sponge.DATA_ID)
                             .map(id -> id.equals(this.key)).orElse(false))
-                            .findFirst();
+                    
+                    .findFirst();
             final DataView manipulatorContainer;
             if (existingContainer.isPresent()) {
                 manipulatorContainer = existingContainer.get();
