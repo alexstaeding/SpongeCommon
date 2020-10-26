@@ -52,7 +52,7 @@ import java.util.stream.Collectors;
 public interface CustomDataHolderBridge {
 
     static void serializeCustomData(final DataCompoundHolder object) {
-        final CompoundNBT compound = object.data$getCompound();
+        CompoundNBT compound = object.data$getCompound();
         if (!(object instanceof CustomDataHolderBridge)) {
             return;
         }
@@ -64,9 +64,13 @@ public interface CustomDataHolderBridge {
         final Set<DataStore> dataStores = manipulator.getKeys().stream()
                 .map(key -> SpongeDataManager.getDatastoreRegistry().getDataStore(key, dataHolderType))
                 .collect(Collectors.toSet());
-        for (DataStore dataStore : dataStores) {
-            final CompoundNBT serialized = NbtTranslator.getInstance().translate(dataStore.serialize(manipulator));
-            compound.merge(serialized);
+        if (!dataStores.isEmpty()) {
+            final DataContainer dataContainer = NbtTranslator.getInstance().translate(compound);
+            for (DataStore dataStore : dataStores) {
+                dataStore.serialize(manipulator, dataContainer);
+            }
+            final CompoundNBT serialized = NbtTranslator.getInstance().translate(dataContainer);
+            compound.merge(serialized); // TODO does this work?
         }
 
         final List<DataView> failedData = ((CustomDataHolderBridge) object).bridge$getFailedData();

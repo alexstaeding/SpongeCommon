@@ -238,13 +238,13 @@ public class SpongeDataStoreBuilder implements DataStore.Builder, DataStore.Buil
                 return;
             }
 
-            final DataView forgeData = view.getView(Constants.Forge.ROOT).orElse(view.createView(Constants.Forge.ROOT));
-            final DataView spongeData =
-                    forgeData.getView(Constants.Sponge.SPONGE_ROOT).orElse(forgeData.createView(Constants.Sponge.SPONGE_ROOT));
+            final DataView forgeData = view.getView(Constants.Forge.ROOT).orElseGet(() -> view.createView(Constants.Forge.ROOT));
+            final DataView spongeData = forgeData.getView(Constants.Sponge.SPONGE_ROOT).orElseGet(() -> forgeData.createView(Constants.Sponge.SPONGE_ROOT));
 
             List<DataView> viewList = spongeData.getViewList(Constants.Sponge.CUSTOM_MANIPULATOR_LIST).orElse(null);
             if (viewList == null) {
                 viewList = new ArrayList<>();
+                spongeData.set(Constants.Sponge.CUSTOM_MANIPULATOR_LIST, viewList);
             }
             final Optional<DataView> existingContainer =
                     viewList.stream().filter(potentialContainer -> potentialContainer.getString(Constants.Sponge.DATA_ID)
